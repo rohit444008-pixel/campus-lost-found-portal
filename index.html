@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Lost & Found Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo"> 🎓 Campus Lost & Found </div>
+        <nav>
+            <a href="#home">Home</a>
+            <a href="#lost">Lost Items</a>
+            <a href="#found">Found Items</a>
+            <a href="#report">Report Item</a>
+            <a href="#contact">Contact</a>
+            <button id="adminLoginBtn" class="admin-nav-btn" onclick="toggleAdminPanel()">Admin Login</button>
+        </nav>
+    </header>
+
+    <!-- Admin Authentication Glass Modal -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Admin Verification</h3>
+            <p>Access control console for review workflow</p>
+            <input type="text" id="adminId" placeholder="Enter Admin ID">
+            <input type="password" id="adminPass" placeholder="Enter Security Password">
+            <button class="modal-submit" onclick="handleAdminLogin()">Verify & Enter</button>
+            <button class="modal-cancel" onclick="closeAdminModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Home Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Campus Lost & Found Portal</h1>
+            <p>Lost something on campus? Found something that belongs to someone else? Report it here and help your
+                fellow students.</p>
+            <div class="hero-buttons">
+                <a href="#report" class="btn">Report Lost Item</a>
+                <a href="#found" class="btn secondary">View Found Items</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about">
+        <h2>How It Works?</h2>
+        <div class="cards">
+            <div class="card">
+                <div class="icon">🔍</div>
+                <h3>Search</h3>
+                <p>Search for your lost item from the items reported by students.</p>
+            </div>
+            <div class="card">
+                <div class="icon">📝</div>
+                <h3>Report</h3>
+                <p>Report an item that you have lost or found on campus.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🤝</div>
+                <h3>Recover</h3>
+                <p>Connect with the owner and return the lost item.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <h2>Search Lost & Found Items</h2>
+        <input type="text" id="searchBox"
+            placeholder="Search item e.g. Wallet, Mobile, ID Card, College bag, Headphones..." onkeyup="searchItem()">
+        <button onclick="searchItem()">Search</button>
+    </section>
+
+    <!-- Track Status Section (Ab Yeh Perfect Place Par Hai) -->
+    <section id="track-status" class="search-section"
+        style="background-color: #f1f5f9; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #cbd5e1;">
+        <h2>Track Your Reported Items</h2>
+        <p style="margin-bottom: 15px; color: #64748b;">Enter your college email ID to check the review status of your
+            items.</p>
+        <div style="display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 15px;">
+            <div style="width: 100%; max-width: 600px; display: flex;">
+                <input type="email" id="trackEmailBox"
+                    placeholder="Enter your registered email (e.g. example@college.edu)"
+                    style="width: 80%; padding: 15px; border: 1px solid #cbd5e1; border-radius: 7px 0 0 7px; font-size: 16px; outline: none; background: white;">
+                <button onclick="trackUserStatus()"
+                    style="padding: 15px 25px; border: none; background-color: #172554; color: white; font-size: 16px; border-radius: 0 7px 7px 0; cursor: pointer; font-weight: bold; margin-left: -5px; transition: 0.3s;">Track</button>
+            </div>
+
+            <!-- Status Result Window -->
+            <div id="statusResultWindow"
+                style="width: 100%; max-width: 700px; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: none; margin-top: 15px; text-align: left;">
+                <h4 style="color: #172554; margin-bottom: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">
+                    Your Reports History:</h4>
+                <div id="statusTracksContainer"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lost Items -->
+    <section id="lost" class="items-section">
+        <h2>Recently Lost Items</h2>
+        <div class="items-container">
+            <!-- Dynamic JavaScript render engine insertion spot -->
+        </div>
+    </section>
+
+    <!-- Found Items -->
+    <section id="found" class="items-section found-section">
+        <h2>Recently Found Items</h2>
+        <div class="items-container">
+            <!-- Dynamic JavaScript render engine insertion spot -->
+        </div>
+    </section>
+
+    <!-- Report Item -->
+    <section id="report" class="report-section">
+        <h2>Report Lost / Found Item</h2>
+        <form id="reportForm">
+            <label for="reportType">Report Type</label>
+            <select id="reportType">
+                <option value="lost">I Lost an Item</option>
+                <option value="found">I Found an Item</option>
+            </select>
+
+            <label for="itemName">Item Name</label>
+            <input type="text" id="itemName" placeholder="Enter item name" required>
+
+            <label for="category">Category</label>
+            <select id="category">
+                <option value="Mobile">Mobile</option>
+                <option value="Laptop">Laptop</option>
+                <option value="Wallet">Wallet</option>
+                <option value="ID Card">ID Card</option>
+                <option value="Keys">Keys</option>
+                <option value="Books">Books</option>
+                <option value="Bag">Bag</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="location">Location</label>
+            <input type="text" id="location" placeholder="Where was it lost/found?" required>
+
+            <label for="date">Date</label>
+            <input type="date" id="date" required>
+
+            <label for="description">Description</label>
+            <textarea id="description" rows="5" placeholder="Describe the item physical features..."></textarea>
+
+            <label for="studentName">Your Name</label>
+            <input type="text" id="studentName" placeholder="Enter your name" required>
+
+            <label for="email">College Email</label>
+            <input type="email" id="email" placeholder="example@college.edu" required>
+
+            <button type="submit" class="submit-btn"> Submit Report </button>
+        </form>
+        <p id="successMessage"></p>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="contact">
+        <h2>Contact Campus Administration</h2>
+        <p>For urgent lost & found cases, contact the college administration.</p>
+        <p>📧 Email: rohit444008@gmail.com</p>
+        <p>📞 Phone: +91 7017228722</p>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2026 Campus Lost & Found Portal</p>
+        <p>Developed for College Mini Project BY => [Rohit Kumar, Priyanshi Sharma, Kesav, Manshi]</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
