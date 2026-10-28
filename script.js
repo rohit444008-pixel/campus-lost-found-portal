@@ -1,28 +1,53 @@
-// LocalStorage data state architecture setup
-let itemsList = JSON.parse(localStorage.getItem('campusItems')) || [
-    { id: 1, type: 'lost', name: 'Mobile Phone', location: 'Library', date: '2026-08-20', user: 'Rahul', email: 'rahul@college.edu', icon: '📱', status: 'Approved' },
-    { id: 2, type: 'lost', name: 'College ID Card', location: 'CSE Block', date: '2026-08-19', user: 'Aman', email: 'aman@college.edu', icon: '💳', status: 'Pending Review' },
-    { id: 3, type: 'lost', name: 'Wireless Earbuds', location: 'Cafeteria', date: '2026-08-18', user: 'Neha', email: 'neha@college.edu', icon: '🎧', status: 'Approved' },
-    { id: 4, type: 'found', name: 'Wallet', location: 'Parking Area', date: '2026-08-20', user: 'Karan', email: 'karan@college.edu', icon: '👛', status: 'Pending Review' },
-    { id: 5, type: 'found', name: 'Car Keys', location: 'Main Gate', date: '2026-08-19', user: 'Rohit', email: 'rohit@college.edu', icon: '🔑', status: 'Approved' }
-];
+// ===== Supabase connection =====
+// Publishable key public hoti hai (safe). NEVER put the secret/service_role key here.
+const SUPABASE_URL = "https://ddtbqlalhfokedxbhdhj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_egINPJu1IQV6kYN4EXLF3A_8pIpi6qz";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let itemsList = [];
 let isAdminLoggedIn = false;
 
 const categoryIcons = {
     'Mobile': '📱', 'Laptop': '💻', 'Wallet': '👛', 'ID Card': '💳',
     'Keys': '🔑', 'Books': '📚', 'Bag': '🎒', 'Other': '📦'
 };
+const STATUS_LABEL = { pending: 'Pending Review', approved: 'Approved', rejected: 'Rejected' };
+const STATUS_COLOR = { pending: '#f59e0b', approved: '#2ecc71', rejected: '#ef4444' };
 
-// Toggle Panel Trigger
-function toggleAdminPanel() {
+// Shared data ab sabko dikhta hai, isliye HTML escape zaroori hai (XSS se bachne ke liye)
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ===== Data loading =====
+async function loadItems() {
+    // Admin ko saari reports (reports table), public ko sirf approved (public_reports view)
+    const source = isAdminLoggedIn ? 'reports' : 'public_reports';
+    const { data, error } = await db.from(source).select('*').order('created_at', { ascending: false });
+    if (error) {
+        console.error(error);
+        alert("Data load nahi hua: " + error.message);
+        return;
+    }
+    itemsList = data || [];
+    renderItems(document.getElementById('searchBox').value);
+}
+
+// ===== Admin auth (Supabase Auth) =====
+function setAdminUI(on) {
+    isAdminLoggedIn = on;
+    const btn = document.getElementById('adminLoginBtn');
+    btn.innerText = on ? "Admin Logout 🔓" : "Admin Login";
+    btn.classList.toggle('logged-in', on);
+}
+
+async function toggleAdminPanel() {
     if (isAdminLoggedIn) {
-        isAdminLoggedIn = false;
-        const btn = document.getElementById('adminLoginBtn');
-        btn.innerText = "Admin Login";
-        btn.classList.remove('logged-in');
+        await db.auth.signOut();
+        setAdminUI(false);
         alert("Admin Session Ended.");
-        renderItems();
+        loadItems();
     } else {
         document.getElementById('adminModal').style.display = 'flex';
     }
@@ -32,135 +57,121 @@ function closeAdminModal() {
     document.getElementById('adminModal').style.display = 'none';
 }
 
-// Authentication Controller
-function handleAdminLogin() {
-    const id = document.getElementById('adminId').value;
-    const pass = document.getElementById('adminPass').value;
+async function handleAdminLogin() {
+    const email = document.getElementById('adminId').value.trim();
+    const password = document.getElementById('adminPass').value;
 
-    if (id === 'admin' && pass === 'password') {
-        isAdminLoggedIn = true;
-        const btn = document.getElementById('adminLoginBtn');
-        btn.innerText = "Admin Logout 🔓";
-        btn.classList.add('logged-in');
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+        alert("Unauthorized Access. Wrong email or password!");
+    } else {
+        setAdminUI(true);
         closeAdminModal();
         alert("Verification Success! Admin view enabled.");
-        renderItems();
-    } else {
-        alert("Unauthorized Access. Wrong ID or Password!");
+        loadItems();
     }
     document.getElementById('adminId').value = '';
     document.getElementById('adminPass').value = '';
 }
 
-// Render Core Pipeline
+// ===== Render =====
 function renderItems(filterText = '') {
     const lostContainer = document.querySelector('#lost .items-container');
     const foundContainer = document.querySelector('#found .items-container');
-
     lostContainer.innerHTML = '';
     foundContainer.innerHTML = '';
 
+    const q = filterText.toLowerCase();
     const filtered = itemsList.filter(item =>
-        item.name.toLowerCase().includes(filterText.toLowerCase()) ||
-        item.location.toLowerCase().includes(filterText.toLowerCase())
+        (item.item_name || '').toLowerCase().includes(q) ||
+        (item.location || '').toLowerCase().includes(q)
     );
 
     filtered.forEach(item => {
-        // Validation filter: Hide pending products from non-admins
-        if (!isAdminLoggedIn && item.status === 'Pending Review') return;
-
+        const status = item.status || 'approved'; // public view me sirf approved aate hain
+        const icon = categoryIcons[item.category] || '📦';
         const card = document.createElement('div');
         card.className = 'item-card';
 
-        const badgeColor = item.status === 'Approved' ? '#2ecc71' : '#f59e0b';
-
-        // Conditional Rendering of Admin Buttons
         const adminControls = isAdminLoggedIn ? `
             <div class="admin-actions-pane">
-                ${item.status === 'Pending Review' ? `<button class="admin-btn-approve" onclick="approveItem(${item.id})">Approve</button>` : ''}
-                <button class="admin-btn-delete" onclick="deleteItem(${item.id})">Delete</button>
-            </div>
-        ` : '';
+                ${status === 'pending' ? `<button class="admin-btn-approve" onclick="approveItem('${esc(item.id)}')">Approve</button>` : ''}
+                <button class="admin-btn-delete" onclick="deleteItem('${esc(item.id)}')">Delete</button>
+            </div>` : '';
+
+        // Naam/email sirf admin ko dikhte hain (public view me hote hi nahi)
+        const reporter = isAdminLoggedIn
+            ? `<p><strong>${item.type === 'lost' ? 'Owner:' : 'Found By:'}</strong> ${esc(item.name)} (${esc(item.email)})</p>` : '';
 
         card.innerHTML = `
-            <div class="item-image">${item.icon}</div>
+            <div class="item-image">${icon}</div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin: 0 20px 10px;">
-                <h3 style="margin:0; font-size:20px;">${item.name}</h3>
-                <span style="background:${badgeColor}; color:white; font-size:11px; padding:3px 8px; border-radius:50px; font-weight:bold;">${item.status}</span>
+                <h3 style="margin:0; font-size:20px;">${esc(item.item_name)}</h3>
+                <span style="background:${STATUS_COLOR[status]}; color:white; font-size:11px; padding:3px 8px; border-radius:50px; font-weight:bold;">${STATUS_LABEL[status]}</span>
             </div>
-            <p><strong>${item.type === 'lost' ? 'Location:' : 'Found At:'}</strong> ${item.location}</p>
-            <p><strong>Date:</strong> ${item.date}</p>
-            <p><strong>${item.type === 'lost' ? 'Owner:' : 'Found By:'}</strong> ${item.user}</p>
+            <p><strong>${item.type === 'lost' ? 'Location:' : 'Found At:'}</strong> ${esc(item.location)}</p>
+            <p><strong>Date:</strong> ${esc(item.date)}</p>
+            ${item.description ? `<p>${esc(item.description)}</p>` : ''}
+            ${reporter}
             ${!isAdminLoggedIn ? `<button onclick="actionAlert('${item.type}')">${item.type === 'lost' ? 'View Details' : 'Claim Item'}</button>` : ''}
             ${adminControls}
         `;
 
-        if (item.type === 'lost') {
-            lostContainer.appendChild(card);
-        } else {
-            foundContainer.appendChild(card);
-        }
+        (item.type === 'lost' ? lostContainer : foundContainer).appendChild(card);
     });
-
-    localStorage.setItem('campusItems', JSON.stringify(itemsList));
 }
 
-// Action Management Methods
-function approveItem(id) {
-    const item = itemsList.find(i => i.id === id);
-    if (item) {
-        item.status = 'Approved';
-        alert("Item approved successfully!");
-        renderItems();
-    }
+// ===== Admin actions =====
+async function approveItem(id) {
+    const { error } = await db.from('reports').update({ status: 'approved' }).eq('id', id);
+    if (error) return alert("Approve fail: " + error.message);
+    alert("Item approved successfully!");
+    loadItems();
 }
 
-// Student User Status Tracking Engine
-function trackUserStatus() {
-    const emailInput = document.getElementById('trackEmailBox').value.trim().toLowerCase();
+async function deleteItem(id) {
+    if (!confirm("Are you sure you want to permanently delete this log?")) return;
+    const { error } = await db.from('reports').delete().eq('id', id);
+    if (error) return alert("Delete fail: " + error.message);
+    loadItems();
+}
+
+// ===== Track by email (RPC function) =====
+async function trackUserStatus() {
+    const email = document.getElementById('trackEmailBox').value.trim().toLowerCase();
     const resultWindow = document.getElementById('statusResultWindow');
     const tracksContainer = document.getElementById('statusTracksContainer');
 
-    if (!emailInput) {
-        alert("Please enter your college email ID first!");
-        return;
-    }
+    if (!email) return alert("Please enter your college email ID first!");
 
-    const userItems = itemsList.filter(item => item.email && item.email.toLowerCase() === emailInput);
-
+    const { data, error } = await db.rpc('track_reports', { p_email: email });
     resultWindow.style.display = 'block';
     tracksContainer.innerHTML = '';
 
-    if (userItems.length === 0) {
+    if (error) {
+        tracksContainer.innerHTML = `<p style="color:#ef4444; text-align:center; padding:10px;">Error: ${esc(error.message)}</p>`;
+        return;
+    }
+    if (!data || data.length === 0) {
         tracksContainer.innerHTML = `<p style="color: #ef4444; font-weight: 500; text-align: center; padding: 10px;">No reports found registered under this email address.</p>`;
         return;
     }
 
-    userItems.forEach(item => {
-        const statusBadgeColor = item.status === 'Approved' ? '#2ecc71' : '#f59e0b';
+    data.forEach(item => {
         const row = document.createElement('div');
         row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid #f1f5f9; gap: 10px;";
-
         row.innerHTML = `
             <div>
-                <span style="font-size: 18px; margin-right: 8px;">${item.icon}</span>
-                <strong style="color: #0f172a;">${item.name}</strong> 
-                <span style="font-size: 12px; color: #64748b; margin-left: 10px;">(${item.type.toUpperCase()} at ${item.location})</span>
+                <span style="font-size: 18px; margin-right: 8px;">${item.type === 'lost' ? '🔍' : '📦'}</span>
+                <strong style="color: #0f172a;">${esc(item.item_name)}</strong>
+                <span style="font-size: 12px; color: #64748b; margin-left: 10px;">(${esc(item.type).toUpperCase()})</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 12px; color: #94a3b8;">${item.date}</span>
-                <span style="background: ${statusBadgeColor}; color: white; font-size: 11px; padding: 3px 10px; border-radius: 50px; font-weight: bold;">${item.status}</span>
-            </div>
-        `;
+                <span style="font-size: 12px; color: #94a3b8;">${new Date(item.created_at).toLocaleDateString()}</span>
+                <span style="background: ${STATUS_COLOR[item.status]}; color: white; font-size: 11px; padding: 3px 10px; border-radius: 50px; font-weight: bold;">${STATUS_LABEL[item.status] || esc(item.status)}</span>
+            </div>`;
         tracksContainer.appendChild(row);
     });
-}
-
-function deleteItem(id) {
-    if (confirm("Are you sure you want to permanently delete this log?")) {
-        itemsList = itemsList.filter(i => i.id !== id);
-        renderItems();
-    }
 }
 
 function actionAlert(type) {
@@ -168,37 +179,42 @@ function actionAlert(type) {
 }
 
 function searchItem() {
-    const query = document.getElementById('searchBox').value;
-    renderItems(query);
+    renderItems(document.getElementById('searchBox').value);
 }
 
-// Form Post Request Pipeline (Catches Email Correctly)
-document.getElementById('reportForm').addEventListener('submit', function (e) {
+// ===== Submit report =====
+document.getElementById('reportForm').addEventListener('submit', async function (e) {
     e.preventDefault();
+    const btn = this.querySelector('.submit-btn');
+    btn.disabled = true;
 
-    const type = document.getElementById('reportType').value;
-    const name = document.getElementById('itemName').value;
-    const category = document.getElementById('category').value;
-    const location = document.getElementById('location').value;
-    const date = document.getElementById('date').value;
-    const user = document.getElementById('studentName').value;
-    const email = document.getElementById('email').value;
-    const icon = categoryIcons[category] || '📦';
-
-    itemsList.unshift({
-        id: Date.now(),
-        type, name, location, date, user, email, icon,
-        status: 'Pending Review'
+    const { error } = await db.from('reports').insert({
+        type: document.getElementById('reportType').value,
+        item_name: document.getElementById('itemName').value.trim(),
+        category: document.getElementById('category').value,
+        location: document.getElementById('location').value.trim(),
+        date: document.getElementById('date').value,
+        description: document.getElementById('description').value.trim(),
+        name: document.getElementById('studentName').value.trim(),
+        email: document.getElementById('email').value.trim().toLowerCase()
     });
 
-    renderItems();
-
     const msg = document.getElementById('successMessage');
-    msg.innerText = `🎉 Report Filed! Awaiting Campus Administration Review. You can track it using your email below.`;
+    btn.disabled = false;
+    if (error) {
+        msg.innerText = "❌ Report submit nahi hui: " + error.message;
+        msg.style.color = "#ef4444";
+        return;
+    }
+    msg.innerText = "🎉 Report Filed! Awaiting Campus Administration Review. You can track it using your email below.";
     msg.style.color = "#f59e0b";
-
-    document.getElementById('reportForm').reset();
+    this.reset();
+    loadItems();
 });
 
-// App Initiation
-window.onload = () => renderItems();
+// ===== App init =====
+window.onload = async () => {
+    const { data } = await db.auth.getSession();
+    setAdminUI(!!data.session);
+    loadItems();
+};

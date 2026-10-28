@@ -27,7 +27,7 @@
         <div class="modal-box">
             <h3>Admin Verification</h3>
             <p>Access control console for review workflow</p>
-            <input type="text" id="adminId" placeholder="Enter Admin ID">
+            <input type="email" id="adminId" placeholder="Enter Admin Email">
             <input type="password" id="adminPass" placeholder="Enter Security Password">
             <button class="modal-submit" onclick="handleAdminLogin()">Verify & Enter</button>
             <button class="modal-cancel" onclick="closeAdminModal()">Cancel</button>
@@ -177,6 +177,7 @@
         <p>Developed for College Mini Project BY => [Rohit Kumar, Priyanshi Sharma, Kesav, Manshi]</p>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script src="script.js"></script>
 </body>
 
