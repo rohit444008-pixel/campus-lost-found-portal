@@ -198,7 +198,7 @@ document.getElementById('reportForm').addEventListener('submit', async function 
         date: document.getElementById('date').value,
         description: document.getElementById('description').value.trim(),
         name: document.getElementById('studentName').value.trim(),
-        email: document.getElementById('email').value.trim().toLowerCase()
+        email: document.getElementById('email').value.trim().toLowerCase(),
         phone: document.getElementById('phone').value.trim()
     });
 
