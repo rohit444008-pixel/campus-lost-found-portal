@@ -101,7 +101,6 @@ function renderItems(filterText = '') {
 
         // Naam/email sirf admin ko dikhte hain (public view me hote hi nahi)
         const reporter = isAdminLoggedIn
-                    const reporter = isAdminLoggedIn
             ? `<p><strong>${item.type === 'lost' ? 'Owner:' : 'Found By:'}</strong> ${esc(item.name)}</p>
                <p>📞 ${item.phone ? `<a href="tel:${esc(item.phone)}">${esc(item.phone)}</a>` : 'N/A'} | ✉️ <a href="mailto:${esc(item.email)}">${esc(item.email)}</a></p>` : '';
 
