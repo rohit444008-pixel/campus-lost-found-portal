@@ -101,7 +101,9 @@ function renderItems(filterText = '') {
 
         // Naam/email sirf admin ko dikhte hain (public view me hote hi nahi)
         const reporter = isAdminLoggedIn
-            ? `<p><strong>${item.type === 'lost' ? 'Owner:' : 'Found By:'}</strong> ${esc(item.name)} (${esc(item.email)})</p>` : '';
+                    const reporter = isAdminLoggedIn
+            ? `<p><strong>${item.type === 'lost' ? 'Owner:' : 'Found By:'}</strong> ${esc(item.name)}</p>
+               <p>📞 ${item.phone ? `<a href="tel:${esc(item.phone)}">${esc(item.phone)}</a>` : 'N/A'} | ✉️ <a href="mailto:${esc(item.email)}">${esc(item.email)}</a></p>` : '';
 
         card.innerHTML = `
             <div class="item-image">${icon}</div>
@@ -197,6 +199,7 @@ document.getElementById('reportForm').addEventListener('submit', async function 
         description: document.getElementById('description').value.trim(),
         name: document.getElementById('studentName').value.trim(),
         email: document.getElementById('email').value.trim().toLowerCase()
+        phone: document.getElementById('phone').value.trim()
     });
 
     const msg = document.getElementById('successMessage');
