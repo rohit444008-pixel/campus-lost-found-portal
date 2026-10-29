@@ -1,6 +1,4 @@
-Claude
 
-Script · JS
 // ===== Supabase connection =====
 // Publishable key public hoti hai (safe). NEVER put the secret/service_role key here.
 const SUPABASE_URL = "https://ddtbqlalhfokedxbhdhj.supabase.co";
@@ -261,5 +259,3 @@ window.onload = async () => {
     setAdminUI(!!data.session);
     loadItems();
 };
- 
-Claude finished the response
